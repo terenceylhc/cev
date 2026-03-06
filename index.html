@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 核心單字U8互動單字記憶卡</title>
+    <style>
+        :root {
+            --primary: #2C3E50;
+            --accent: #E67E22;
+            --bg: #F4F7F6;
+            --card-white: #FFFFFF;
+            --text-main: #2C3E50;
+            --text-sub: #7F8C8D;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; }
+
+        body { 
+            background-color: var(--bg); 
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .header { 
+            text-align: center; 
+            margin-bottom: 30px; 
+            color: var(--primary); 
+        }
+
+        .header h1 { font-size: 2rem; margin-bottom: 10px; }
+
+        /* 響應式佈局：電腦 2 列，手機 1 列 */
+        .grid-container {
+            display: grid;
+            gap: 25px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 769px) {
+            .grid-container { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 768px) {
+            .grid-container { grid-template-columns: 1fr; }
+        }
+
+        /* 3D 翻轉卡片設計 */
+        .card {
+            perspective: 1000px;
+            height: 480px;
+            cursor: pointer;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-radius: 20px;
+        }
+
+        .card.is-flipped .card-inner { transform: rotateY(180deg); }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            background: var(--card-white);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        /* 正面樣式 */
+        .face-front .image-area {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background-repeat: no-repeat;
+            background-size: 400% 400%; /* 4x4 Grid */
+            background-color: #f0f0f0;
+        }
+
+        .face-front .info-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .word-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .word-title { font-size: 2.8rem; font-weight: 800; color: var(--primary); letter-spacing: -1px; }
+        .audio-btn { 
+            background: #f0f2f5; border: none; font-size: 1.2rem; cursor: pointer; 
+            width: 45px; height: 45px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; 
+        }
+        .audio-btn:hover { background: var(--primary); color: white; transform: scale(1.1); }
+        .phonetic { color: var(--text-sub); font-size: 1.2rem; font-family: 'Arial', sans-serif; }
+
+        /* 反面樣式 */
+        .face-back {
+            transform: rotateY(180deg);
+            padding: 30px;
+            background: #fff;
+            justify-content: flex-start;
+        }
+
+        .back-top { margin-bottom: 20px; border-bottom: 2px solid #f4f7f6; padding-bottom: 15px; }
+        .back-word { font-size: 3rem; color: var(--primary); font-weight: 900; }
+        .back-pos { font-size: 1.1rem; color: var(--text-sub); font-weight: 600; margin-top: 5px; }
+        
+        .back-mean { font-size: 2rem; color: #333; margin: 15px 0; font-weight: bold; }
+        
+        .mnemonic-box {
+            background: #fff9f2;
+            border-left: 6px solid var(--accent);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: left;
+            margin-top: auto;
+        }
+        .strategy-tag { 
+            display: inline-block; 
+            background: var(--primary); 
+            color: white; 
+            padding: 4px 12px; 
+            border-radius: 6px; 
+            font-size: 0.9rem; 
+            margin-bottom: 12px; 
+            font-weight: bold;
+        }
+        .mnemonic-text { 
+            font-size: 1.3rem; 
+            color: var(--accent); 
+            font-weight: bold; 
+            line-height: 1.5; 
+        }
+
+        /* 底部按鈕 */
+        .controls {
+            text-align: center;
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+        .btn-refresh {
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(44, 62, 80, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🧠 互動單字記憶卡</h1>
+        <p>按照單字順序排列 • 點擊卡片翻轉查看口訣</p>
+    </div>
+
+    <div class="grid-container" id="vocabGrid">
+        <!-- 卡片將由 JavaScript 動態生成 -->
+    </div>
+
+    <div class="controls">
+        <button class="btn-refresh" onclick="location.reload()">🔄 重新整理網頁</button>
+    </div>
+
+    <script>
+        const IMG_GRID_1 = "https://raw.githubusercontent.com/terenceylhc/cev/main/u8g1.jpg";
+        const IMG_GRID_2 = "https://raw.githubusercontent.com/terenceylhc/cev/main/u8g2.jpg";
+
+        const vocabularyData = [
+            { en: "action", ph: "[ˈækʃən]", cn: "行動、實行", grid: 1, pos: 1, type: "n.", strategy: "諧音", mnemonic: "「愛去選」：愛去選投票，立刻採取行動。" },
+            { en: "announce", ph: "[əˈnaʊns]", cn: "發佈、宣佈", grid: 1, pos: 2, type: "vt.", strategy: "諧音", mnemonic: "「鵝鬧事」：鵝在那邊鬧事，大聲宣佈領土。" },
+            { en: "break", ph: "[brek]", cn: "打破 / 休息", grid: 1, pos: 3, type: "v./n.", strategy: "諧音", mnemonic: "「不累刻」：不累的時候刻苦，累了就休息。" },
+            { en: "case", ph: "[kes]", cn: "情況 / 容器", grid: 1, pos: 4, type: "n.", strategy: "視覺圖像", mnemonic: "這個透明容器裡裝著神祕的案件。" },
+            { en: "club", ph: "[klʌb]", cn: "社團 / 俱樂部", grid: 1, pos: 5, type: "n.", strategy: "諧音", mnemonic: "「可樂吧」：社團迎新，大家都在可樂吧聚會。" },
+            { en: "complex", ph: "[kəmˈplɛks]", cn: "複雜的", grid: 1, pos: 6, type: "adj.", strategy: "字根", mnemonic: "com (一起) + plex (摺)：全部摺疊在一起，很複雜。" },
+            { en: "conflict", ph: "[ˈkɑnflɪkt]", cn: "衝突、牴觸", grid: 1, pos: 7, type: "n./v.", strategy: "字根", mnemonic: "con (一起) + flict (打)：打在一起，發生衝突。" },
+            { en: "contain", ph: "[kənˈten]", cn: "包含、容納", grid: 1, pos: 8, type: "vt.", strategy: "諧音", mnemonic: "「肯聽」：肯聽話的孩子，腦袋才能容納知識。" },
+            { en: "drug", ph: "[drʌɡ]", cn: "藥物 / 毒品", grid: 1, pos: 9, type: "n.", strategy: "諧音", mnemonic: "「抓個」：抓個正著，他在用危險藥物。" },
+            { en: "ease", ph: "[iz]", cn: "減輕、緩和", grid: 1, pos: 10, type: "v./n.", strategy: "諧音", mnemonic: "「一直」：一直吹冷氣，減輕了夏天的悶熱。" },
+            { en: "exact", ph: "[ɪɡˈzækt]", cn: "準確的", grid: 1, pos: 11, type: "adj.", strategy: "諧音", mnemonic: "「一個射」：瞄準目標，一個射中，非常準確。" },
+            { en: "fight", ph: "[faɪt]", cn: "打鬥 / 打架", grid: 1, pos: 12, type: "v./n.", strategy: "視覺圖像", mnemonic: "兩個拳擊手正在擂台上激烈打架。" },
+            { en: "flour", ph: "[flaʊr]", cn: "麵粉", grid: 1, pos: 13, type: "n.", strategy: "視覺圖像", mnemonic: "桌面灑滿了白色的麵粉，準備做麵包。" },
+            { en: "friendly", ph: "[ˈfrɛndli]", cn: "親切的、友好的", grid: 1, pos: 14, type: "adj.", strategy: "字根", mnemonic: "friend (朋友) + ly：像朋友一樣親切友好。" },
+            { en: "hunger", ph: "[ˈhʌŋɡɚ]", cn: "飢餓", grid: 1, pos: 15, type: "n.", strategy: "諧音", mnemonic: "「夯狗」：飢餓到好想吃「夯(烤)熱狗」。" },
+            { en: "interview", ph: "[ˈɪntɚˌvju]", cn: "面試、面談", grid: 1, pos: 16, type: "n./v.", strategy: "字根", mnemonic: "inter (之間) + view (看)：面試就是穿西裝看面試官。" },
+            { en: "marathon", ph: "[ˈmærəˌθɑn]", cn: "馬拉松", grid: 2, pos: 1, type: "n.", strategy: "視覺圖像", mnemonic: "跑者在漫長的道路上進行馬拉松奔跑。" },
+            { en: "mean", ph: "[min]", cn: "意指 / 惡劣的", grid: 2, pos: 2, type: "v./adj.", strategy: "諧音", mnemonic: "「名」聲很臭，因為他對人很惡劣。" },
+            { en: "mix", ph: "[mɪks]", cn: "混合", grid: 2, pos: 3, type: "v./n.", strategy: "諧音", mnemonic: "「米克斯」：米克斯是多種血統混合而成的。" },
+            { en: "mug", ph: "[mʌɡ]", cn: "馬克杯", grid: 2, pos: 4, type: "n.", strategy: "視覺圖像", mnemonic: "冒著熱氣的大型馬克杯。" },
+            { en: "noon", ph: "[nun]", cn: "正午、中午", grid: 2, pos: 5, type: "n.", strategy: "視覺圖像", mnemonic: "太陽掛在時鐘 12 點的正上方。" },
+            { en: "relative", ph: "[ˈrɛlətɪv]", cn: "親戚 / 相關的", grid: 2, pos: 6, type: "n./adj.", strategy: "諧音", mnemonic: "「肉、禮、提」：手提肉乾禮盒去拜訪親戚。" },
+            { en: "remind", ph: "[rɪˈmaɪnd]", cn: "提醒", grid: 2, pos: 7, type: "vt.", strategy: "字根", mnemonic: "re (再) + mind (心)：讓事情再次回到心上。" },
+            { en: "separate", ph: "[ˈsɛpəˌret]", cn: "分開的 / 使分開", grid: 2, pos: 8, type: "adj./v.", strategy: "字根", mnemonic: "se (分開) + par (準備)：把準備好的東西分開。" },
+            { en: "tube", ph: "[tjub]", cn: "管子", grid: 2, pos: 9, type: "n.", strategy: "視覺圖像", mnemonic: "一根長長的、空心的管子。" }
+        ];
+
+        // 照 1-25 順序排列（不使用隨機洗牌）
+        const orderedData = [...vocabularyData];
+
+        function speak(text) {
+            const msg = new SpeechSynthesisUtterance();
+            msg.text = text;
+            msg.lang = 'en-US';
+            msg.rate = 0.9;
+            window.speechSynthesis.speak(msg);
+        }
+
+        function createCard(item) {
+            // CSS Sprite 4x4 座標計算
+            const spriteIdx = item.pos - 1;
+            const xPercent = (spriteIdx % 4) * 33.333333;
+            const yPercent = Math.floor(spriteIdx / 4) * 33.333333;
+            const imgUrl = item.grid === 1 ? IMG_GRID_1 : IMG_GRID_2;
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-inner">
+                    <div class="card-face face-front">
+                        <div class="image-area" style="background-image: url('${imgUrl}'); background-position: ${xPercent}% ${yPercent}%;"></div>
+                        <div class="info-area">
+                            <div class="word-wrap">
+                                <span class="word-title">${item.en}</span>
+                                <button class="audio-btn" onclick="event.stopPropagation(); speak('${item.en}')">🔊</button>
+                            </div>
+                            <div class="phonetic">${item.ph}</div>
+                        </div>
+                    </div>
+                    <div class="card-face face-back">
+                        <div class="back-top">
+                            <div class="back-word">${item.en}</div>
+                            <div class="back-pos">${item.type}</div>
+                        </div>
+                        <div class="back-mean">${item.cn}</div>
+                        <div class="mnemonic-box">
+                            <div class="strategy-tag">💡 策略：${item.strategy}</div>
+                            <div class="mnemonic-text">${item.mnemonic}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            card.addEventListener('click', () => {
+                const isAlreadyFlipped = card.classList.contains('is-flipped');
+                if (!isAlreadyFlipped) {
+                    speak(item.en);
+                }
+                card.classList.toggle('is-flipped');
+            });
+
+            return card;
+        }
+
+        const container = document.getElementById('vocabGrid');
+        orderedData.forEach(item => {
+            container.appendChild(createCard(item));
+        });
+    </script>
+</body>
+</html>
