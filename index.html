@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>統測英文核心單字圖像記憶卡</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;900&display=swap');
+
+        :root {
+            --paper-color: #e0d5c1; /* 更接近畫布的深米色 */
+            --ink-color: #2b1d1a;
+            --ochre-dark: #6d4c41;
+            --bird-red: #d12b1d;
+            --bird-glow: rgba(209, 43, 29, 0.4);
+            --frame-color: #8d6e63;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #3e2723; /* 深色背景模擬畫廊牆面 */
+            background-image: url("https://www.transparenttextures.com/patterns/dark-wood.png");
+            font-family: 'Noto Serif TC', serif;
+            color: var(--ink-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background-color: var(--paper-color);
+            background-image: url("https://www.transparenttextures.com/patterns/ashen-canvas.png");
+            padding: 60px 40px;
+            border: 12px solid var(--frame-color);
+            border-image: url("https://www.transparenttextures.com/patterns/dark-leather.png") 30 round;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        /* 藝術風格婆憂鳥 SVG */
+        .art-bird {
+            width: 180px;
+            height: 180px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 10px var(--bird-glow));
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+            color: var(--ink-color);
+            font-weight: 900;
+            border-bottom: 2px solid var(--ochre-dark);
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+
+        .slogan {
+            font-size: 1.2rem;
+            color: var(--ochre-dark);
+            margin-top: 10px;
+            letter-spacing: 1px;
+        }
+
+        .intro-text {
+            font-size: 1rem;
+            max-width: 550px;
+            margin: 30px auto;
+            color: #4e342e;
+            line-height: 1.8;
+            text-align: justify;
+            text-justify: inter-ideograph;
+            opacity: 0.9;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
+        }
+
+        .unit-card {
+            aspect-ratio: 1 / 1.1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+            position: relative;
+            padding: 15px;
+            background-image: url("https://www.transparenttextures.com/patterns/handmade-paper.png");
+        }
+
+        /* Unit 8 活潑樣式 */
+        .unit-card.active {
+            background-color: #dcd0b9;
+            border: 2px solid var(--ink-color);
+            box-shadow: 6px 6px 0px var(--ink-color);
+        }
+
+        .unit-card.active:hover {
+            transform: translateY(-5px);
+            box-shadow: 10px 10px 0px var(--bird-red);
+        }
+
+        .unit-card.active .unit-number {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--ink-color);
+        }
+
+        .unit-card.active .status {
+            font-size: 0.85rem;
+            margin-top: 8px;
+            color: var(--bird-red);
+            font-weight: bold;
+        }
+
+        /* 鎖定單元樣式 */
+        .unit-card.locked {
+            background-color: rgba(0,0,0,0.05);
+            border: 1px dashed var(--ochre-dark);
+            cursor: default;
+        }
+
+        .unit-card.locked .unit-number {
+            font-size: 1.5rem;
+            color: #8d6e63;
+        }
+
+        .unit-card.locked .status {
+            font-size: 0.75rem;
+            color: #a1887f;
+            margin-top: 5px;
+        }
+
+        /* 裝飾性的小鳥圖標 */
+        .mini-bird {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 8px;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 30px 20px; }
+            h1 { font-size: 1.6rem; }
+            .grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <!-- 模擬劉其偉風格的婆憂鳥 SVG -->
+        <svg class="art-bird" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <!-- 設定邊緣暈染濾鏡 -->
+                <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+                <!-- 紅色身軀漸層 -->
+                <radialGradient id="birdGradient" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" style="stop-color:#ff5252;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#b71c1c;stop-opacity:1" />
+                </radialGradient>
+            </defs>
+            
+            <!-- 鳥的身軀 (帶有暈染感的紅色圓潤身形) -->
+            <ellipse cx="65" cy="65" rx="35" ry="40" fill="url(#birdGradient)" filter="url(#softGlow)" />
+            
+            <!-- 鳥的頭部與背部 (黑色流線型) -->
+            <path d="M 35 30 C 20 50 25 90 45 105 L 35 110 L 45 100 C 65 95 95 65 85 45 C 80 35 50 20 35 30 Z" fill="#1a1a1a" />
+            
+            <!-- 嘴部的小尖角 -->
+            <path d="M 85 45 L 92 46 L 86 49 Z" fill="#000" />
+            
+            <!-- 眼睛 (微小的亮點) -->
+            <circle cx="68" cy="42" r="1.5" fill="#fff" opacity="0.8" />
+            
+            <!-- 鳥的腳 (細長且帶有手感) -->
+            <path d="M 45 100 L 42 118 M 55 102 L 55 118" stroke="#000" stroke-width="2.5" stroke-linecap="round" />
+            <path d="M 38 118 L 46 118 M 50 118 L 60 118" stroke="#000" stroke-width="2" stroke-linecap="round" />
+        </svg>
+
+        <h1>統測英文核心單字圖像記憶卡</h1>
+        <p class="slogan">讓記憶如婆憂鳥般，純粹而深刻。</p>
+        
+        <div class="intro-text">
+            劉其偉老爺爺筆下的「婆憂鳥」，帶著思念與守護的溫情。
+            在這裡，我們不只是背誦，而是透過原始且具生命力的圖像，
+            讓每一個單字在腦海中生根。
+        </div>
+    </header>
+
+    <div class="grid">
+        <!-- Unit 8 已開放 -->
+        <a href="https://terenceylhc.github.io/cev/cev8.html" class="unit-card active">
+            <svg class="mini-bird" viewBox="0 0 120 120">
+                <ellipse cx="65" cy="65" rx="35" ry="40" fill="#d32f2f" opacity="0.9" />
+                <path d="M 35 30 C 20 50 25 90 45 105 C 65 95 95 65 85 45 C 80 35 50 20 35 30 Z" fill="#000" />
+                <path d="M 45 100 L 42 115 M 55 102 L 55 115" stroke="#000" stroke-width="3" stroke-linecap="round" />
+            </svg>
+            <div class="unit-number">Unit 8</div>
+            <div class="status">靈感已棲息</div>
+        </a>
+
+        <!-- Unit 9-12 鎖定中 -->
+        <div class="unit-card locked">
+            <div class="unit-number">Unit 9</div>
+            <div class="status">墨色未乾</div>
+        </div>
+
+        <div class="unit-card locked">
+            <div class="unit-number">Unit 10</div>
+            <div class="status">墨色未乾</div>
+        </div>
+
+        <div class="unit-card locked">
+            <div class="unit-number">Unit 11</div>
+            <div class="status">靜候啟程</div>
+        </div>
+
+        <div class="unit-card locked">
+            <div class="unit-number">Unit 12</div>
+            <div class="status">靜候啟程</div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
