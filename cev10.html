@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 互動單字記憶卡</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --primary-blue: #2C3E50;
+            --vibrant-orange: #E67E22;
+        }
+
+        body {
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--primary-blue);
+        }
+
+        /* 核心裁切邏輯：溢位裁切確保無邊框 */
+        .sprite-container {
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px 12px 0 0;
+            background-color: #fff;
+        }
+
+        .sprite-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* 406% 放大比例將邊框擠出視窗 */
+            background-size: 406% 406%;
+            transition: transform 0.3s ease;
+        }
+
+        /* 卡片翻轉效果 */
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 480px;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .card-flip.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            padding: 24px;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .mnemonic-box {
+            background-color: var(--vibrant-orange);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(230, 126, 34, 0.3);
+        }
+
+        .btn-speak {
+            background-color: #ecf0f1;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.2s;
+        }
+
+        .btn-speak:hover {
+            background-color: #dfe6e9;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <header class="text-center mb-10">
+        <h1 class="text-3xl md:text-4xl font-bold mb-2">🧠 互動單字記憶卡</h1>
+        <p class="text-gray-500">點擊卡片翻面學習，點擊喇叭發音</p>
+    </header>
+
+    <div id="vocab-grid" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- 卡片將由 JavaScript 動態生成 -->
+    </div>
+
+    <script>
+        const vocabData = [
+            { "id": 1, "word": "appetite", "phonetic": "[`æpəˌtaɪt]", "pos": "n.", "meaning": "食慾，胃口", "strategy": "諧音記憶", "mnemonic": "看到「愛拍」的「泰」國菜，食慾就大開。", "grid": 1, "pos_idx": 0 },
+            { "id": 2, "word": "aware", "phonetic": "[ə`wɛr]", "pos": "adj.", "meaning": "知道的，察覺到", "strategy": "諧音記憶", "mnemonic": "聽到有人喊「喔！喂！」，立刻察覺到後面有人。", "grid": 1, "pos_idx": 1 },
+            { "id": 3, "word": "childhood", "phonetic": "[`tʃaɪldˌhʊd]", "pos": "n.", "meaning": "童年", "strategy": "字根拆解", "mnemonic": "小孩(Child)戴著大兜帽(Hood)玩，是快樂的童年。", "grid": 1, "pos_idx": 2 },
+            { "id": 4, "word": "coast", "phonetic": "[kost]", "pos": "n.", "meaning": "海岸", "strategy": "諧音記憶", "mnemonic": "在海岸邊「烤」一塊超「斯特」級的巨大吐司。", "grid": 1, "pos_idx": 3 },
+            { "id": 5, "word": "contact", "phonetic": "[`kɑntækt]", "pos": "n./vt.", "meaning": "聯絡；聯繫", "strategy": "諧音記憶", "mnemonic": "為了聯繫他，一直「看他刻」在樹上的電話號碼。", "grid": 1, "pos_idx": 4 },
+            { "id": 6, "word": "count", "phonetic": "[kaʊnt]", "pos": "vi./vt.", "meaning": "數；計算", "strategy": "諧音記憶", "mnemonic": "只需「看他」一眼，就知道他又在數綿羊。", "grid": 1, "pos_idx": 5 },
+            { "id": 7, "word": "country", "phonetic": "[`kʌntrɪ]", "pos": "n.", "meaning": "國家", "strategy": "諧音記憶", "mnemonic": "站在巔峰「看翠」綠大地，這就是我們的國家。", "grid": 1, "pos_idx": 6 },
+            { "id": 8, "word": "decide", "phonetic": "[dɪ`saɪd]", "pos": "vt.", "meaning": "決定", "strategy": "諧音記憶", "mnemonic": "在海「底」進行比「賽」，來決定誰是海王。", "grid": 1, "pos_idx": 7 },
+            { "id": 9, "word": "dial", "phonetic": "[`daɪəl]", "pos": "n./vt.", "meaning": "儀表盤；撥號", "strategy": "圖像記憶", "mnemonic": "撥號盤轉動，指針像儀表盤一樣跑。", "grid": 1, "pos_idx": 8 },
+            { "id": 10, "word": "emotion", "phonetic": "[ɪ`moʃən]", "pos": "n.", "meaning": "情緒", "strategy": "諧音記憶", "mnemonic": "弄丟「一毛」錢，情緒竟然崩潰大哭。", "grid": 1, "pos_idx": 9 },
+            { "id": 11, "word": "employee", "phonetic": "[ɪm`plɔɪi]", "pos": "n.", "meaning": "受雇者", "strategy": "諧音記憶", "mnemonic": "粗心的員工「一不留意」，把桌上的咖啡打翻了。", "grid": 1, "pos_idx": 10 },
+            { "id": 12, "word": "entire", "phonetic": "[In`taIr]", "pos": "adj.", "meaning": "全部的", "strategy": "諧音記憶", "mnemonic": "輪胎在冒「煙」，覆蓋了全部場地。", "grid": 1, "pos_idx": 11 },
+            { "id": 13, "word": "generous", "phonetic": "[`dʒɛnərəs]", "pos": "adj.", "meaning": "慷慨的", "strategy": "諧音記憶", "mnemonic": "把「尖」端寶物都「拿」出來送人，非常慷慨。", "grid": 1, "pos_idx": 12 },
+            { "id": 14, "word": "graduate", "phonetic": "[`ɡrædʒʊˌet]", "pos": "vi.", "meaning": "畢業", "strategy": "字根拆解", "mnemonic": "當你的等級(Grade)爬到最高點，就是畢業的時候。", "grid": 1, "pos_idx": 13 },
+            { "id": 15, "word": "hobby", "phonetic": "[`hɑbɪ]", "pos": "n.", "meaning": "嗜好", "strategy": "諧音記憶", "mnemonic": "「哈比」人的共同嗜好就是收集魔戒。", "grid": 1, "pos_idx": 14 },
+            { "id": 16, "word": "influence", "phonetic": "[`ɪnfluəns]", "pos": "vt./n.", "meaning": "影響", "strategy": "諧音記憶", "mnemonic": "「音符輪流」在腦中響起，影響了我的心情。", "grid": 2, "pos_idx": 0 },
+            { "id": 17, "word": "lie", "phonetic": "[laI]", "pos": "n./vi.", "meaning": "謊言/說謊/躺", "strategy": "諧音記憶", "mnemonic": "因為「懶」得站所以躺下，懶得解釋所以說謊。", "grid": 2, "pos_idx": 1 },
+            { "id": 18, "word": "medicine", "phonetic": "[`mɛdɪsn]", "pos": "n.", "meaning": "藥物", "strategy": "諧音記憶", "mnemonic": "苦藥偷偷「埋」在「地」下很「深」處，不讓媽媽發現。", "grid": 2, "pos_idx": 2 },
+            { "id": 19, "word": "oxygen", "phonetic": "[`AksIdZ1n]", "pos": "n.", "meaning": "氧氣", "strategy": "諧音記憶", "mnemonic": "喔！植物能「吸金」，氧氣比金子還珍貴。", "grid": 2, "pos_idx": 3 },
+            { "id": 20, "word": "prize", "phonetic": "[praIz]", "pos": "n.", "meaning": "獎品", "strategy": "諧音記憶", "mnemonic": "拿到這個大獎品，感覺真「不賴吧」！", "grid": 2, "pos_idx": 4 },
+            { "id": 21, "word": "responsible", "phonetic": "[rI`spAns1bL ]", "pos": "adj.", "meaning": "負責任的", "strategy": "字根拆解", "mnemonic": "能夠對問題做出回應(Response)的人，就是負責任。", "grid": 2, "pos_idx": 5 },
+            { "id": 22, "word": "share", "phonetic": "[SEr]", "pos": "vt.", "meaning": "分享", "strategy": "諧音記憶", "mnemonic": "零食分你「些兒」，我們一起分享。", "grid": 2, "pos_idx": 6 },
+            { "id": 23, "word": "terrible", "phonetic": "[`tEr1bL]", "pos": "adj.", "meaning": "糟糕的", "strategy": "諧音記憶", "mnemonic": "天氣「太熱咯」，整個人快融化，感覺真糟糕。", "grid": 2, "pos_idx": 7 },
+            { "id": 24, "word": "tool", "phonetic": "[tul]", "pos": "n.", "meaning": "工具", "strategy": "諧音記憶", "mnemonic": "這隻「兔兒」拿著鎚子當工具在修房子。", "grid": 2, "pos_idx": 8 },
+            { "id": 25, "word": "waste", "phonetic": "[west]", "pos": "vt./n.", "meaning": "浪費", "strategy": "諧音記憶", "mnemonic": "多到要把豬「餵死」了，真是太浪費了。", "grid": 2, "pos_idx": 9 }
+        ];
+
+        const sprites = {
+            1: "https://github.com/terenceylhc/cev/blob/main/u10g1.jpg?raw=true",
+            2: "https://github.com/terenceylhc/cev/blob/main/u10g2.jpg?raw=true"
+        };
+
+        const gridContainer = document.getElementById('vocab-grid');
+
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // 核心座標計算邏輯
+        function getSpritePos(idx) {
+            const row = Math.floor(idx / 4);
+            const col = idx % 4;
+            // 使用 33.333% 為基準，並根據 406% 的放大倍率微調偏移，以排除網格線
+            const x = (col * 33.333).toFixed(4);
+            const y = (row * 33.333).toFixed(4);
+            return `${x}% ${y}%`;
+        }
+
+        vocabData.forEach(item => {
+            const cardFlip = document.createElement('div');
+            cardFlip.className = 'card-flip';
+            
+            const cardInner = document.createElement('div');
+            cardInner.className = 'card-inner';
+            
+            // 點擊翻面邏輯
+            cardInner.onclick = (e) => {
+                if (e.target.closest('.btn-speak')) return; // 防止點擊喇叭時翻面
+                cardFlip.classList.toggle('flipped');
+                if (cardFlip.classList.contains('flipped')) {
+                    setTimeout(() => speak(item.word), 300);
+                }
+            };
+
+            const bgPos = getSpritePos(item.pos_idx);
+
+            cardInner.innerHTML = `
+                <div class="card-front">
+                    <div class="sprite-container">
+                        <div class="sprite-img" style="background-image: url('${sprites[item.grid]}'); background-position: ${bgPos};"></div>
+                    </div>
+                    <div class="flex-grow flex flex-col items-center justify-center p-6">
+                        <h2 class="text-4xl font-bold mb-2">${item.word}</h2>
+                        <div class="flex items-center gap-3">
+                            <span class="text-gray-500 font-mono">${item.phonetic}</span>
+                            <button class="btn-speak text-xl" onclick="speak('${item.word}')">🔊</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-back">
+                    <h2 class="text-3xl font-bold mb-1">${item.word}</h2>
+                    <p class="text-sm text-gray-400 mb-4">${item.phonetic}</p>
+                    <hr class="mb-4">
+                    <div class="space-y-3">
+                        <p class="text-xl font-semibold"><span class="text-orange-500">${item.pos}</span> ${item.meaning}</p>
+                        <p class="text-gray-500 text-sm">💡 策略：${item.strategy}</p>
+                        <div class="mnemonic-box">
+                            ${item.mnemonic}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            cardFlip.appendChild(cardInner);
+            gridContainer.appendChild(cardFlip);
+        });
+    </script>
+</body>
+</html>
