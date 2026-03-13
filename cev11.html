@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 互動單字記憶卡 - Unit 11</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Lexend:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #2C3E50;
+            --accent-orange: #E67E22;
+            --bg-gray: #F4F7F6;
+            --pos-bg: #E2E8F0;
+        }
+
+        body {
+            font-family: 'Lexend', 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-gray);
+            color: var(--primary-blue);
+        }
+
+        /* 核心影像處理：溢位裁切 (Border-Free Clipping) */
+        .sprite-container {
+            width: 100%;
+            height: 55%; 
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .sprite-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-repeat: no-repeat;
+            background-size: 406% 406%;
+            transition: transform 0.3s ease;
+        }
+
+        /* 1:1 正方形卡片容器 */
+        .card-container {
+            perspective: 1000px;
+            width: 100%;
+            aspect-ratio: 1 / 1; 
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .card-container.is-flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 24px;
+            background: white;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            padding: 24px;
+            justify-content: center; /* 內容往中央靠攏 */
+            align-items: center;
+            gap: 16px; /* 縮小元件間距 */
+        }
+
+        .pos-badge {
+            background-color: var(--pos-bg);
+            color: #475569;
+            padding: 2px 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: inline-block;
+        }
+
+        .mnemonic-box-v2 {
+            background-color: #FFF5EB;
+            border-left: 5px solid var(--accent-orange);
+            color: var(--accent-orange);
+            padding: 14px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            width: 100%;
+            line-height: 1.4;
+            text-align: left;
+            font-size: 1.2rem;
+            margin-top: 8px;
+        }
+
+        .vocab-grid {
+            display: grid;
+            gap: 24px;
+            grid-template-columns: repeat(1, 1fr);
+        }
+
+        @media (min-width: 768px) {
+            .vocab-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .btn-audio {
+            background: white;
+            border: 2px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-audio:hover {
+            background: var(--primary-blue);
+            color: white;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-12">
+
+    <header class="max-w-5xl mx-auto mb-10 text-center">
+        <h1 class="text-3xl md:text-4xl font-bold mb-2">🧠 互動單字記憶卡</h1>
+        <p class="text-lg text-gray-500 font-medium">Unit 11 · 1:1 正方形修正版</p>
+    </header>
+
+    <main class="max-w-5xl mx-auto">
+        <div id="vocab-display" class="vocab-grid">
+            <!-- 卡片由 JS 生成 -->
+        </div>
+    </main>
+
+    <script>
+        const vocabData = [
+            { "id": 1, "word": "admire", "phonetic": "[əd`maɪr]", "pos": "vt.", "meaning": "欽佩，景仰", "strategy": "諧音記憶 (額埋)", "mnemonic": "「額」頭「埋」在土裡表示極度欽佩，你是我的偶像！", "grid": 1, "pos_idx": 0 },
+            { "id": 2, "word": "anyway", "phonetic": "[`ɛnɪˌweɪ]", "pos": "adv.", "meaning": "無論如何", "strategy": "諧音記憶 (安內為)", "mnemonic": "「安內為」(台語：這樣說)啦！不管怎樣我都要去旅行。", "grid": 1, "pos_idx": 1 },
+            { "id": 3, "word": "artist", "phonetic": "[`ɑrtɪst]", "pos": "n.", "meaning": "藝術家", "strategy": "圖像記憶 (雲端畫家)", "mnemonic": "藝術家拿著彩虹畫筆，在雲朵上彩繪世界。", "grid": 1, "pos_idx": 2 },
+            { "id": 4, "word": "buyer", "phonetic": "[`baɪɚ]", "pos": "n.", "meaning": "購買者", "strategy": "諧音記憶 (擺呀)", "mnemonic": "辛苦「擺」攤「呀」，終於等到識貨的購買者來了。", "grid": 1, "pos_idx": 3 },
+            { "id": 5, "word": "capture", "phonetic": "[`æptʃɚ]", "pos": "vt.", "meaning": "捕獲；捕捉", "strategy": "字根拆解 (cap-抓)", "mnemonic": "用攝影機的鏡頭，「抓(cap)」住最美的一瞬間。", "grid": 1, "pos_idx": 4 },
+            { "id": 6, "word": "claim", "phonetic": "[kleɪm]", "pos": "vt./n.", "meaning": "聲稱", "strategy": "諧音記憶 (克臉)", "mnemonic": "克服這張平凡的「臉」，大聲聲稱自己是世界第一帥。", "grid": 1, "pos_idx": 5 },
+            { "id": 7, "word": "differ", "phonetic": "[`dɪfɚ]", "pos": "vi.", "meaning": "不同，相異", "strategy": "字根拆解 (dif-分開帶)", "mnemonic": "雙胞胎「分開帶」大，性格就會變得完全不同。", "grid": 1, "pos_idx": 6 },
+            { "id": 8, "word": "dress", "phonetic": "[drɛs]", "pos": "vt./vi.", "meaning": "打扮；穿衣", "strategy": "圖像記憶 (超長禮服)", "mnemonic": "為了參加晚宴，她在鏡子前精心穿衣打扮。", "grid": 1, "pos_idx": 7 },
+            { "id": 9, "word": "electronic", "phonetic": "[ɪˌlɛk`trɑnɪk]", "pos": "adj.", "meaning": "電子的", "strategy": "諧音記憶 (一粒戳你)", "mnemonic": "裝上這「一粒」電子晶片，它會漏電「戳你」一下。", "grid": 1, "pos_idx": 8 },
+            { "id": 10, "word": "especially", "phonetic": "[ə`spɛʃəlɪ]", "pos": "adv.", "meaning": "特別，尤其", "strategy": "諧音記憶 (愛拚寫哩)", "mnemonic": "我「愛拚寫哩」，「特別」是寫高難度的英文單字。", "grid": 1, "pos_idx": 9 },
+            { "id": 11, "word": "fame", "phonetic": "[feɪm]", "pos": "n.", "meaning": "名聲，名氣", "strategy": "諧音記憶 (飛米)", "mnemonic": "好名聲大到可以「飛」過一萬「米」遠，全世界都知道。", "grid": 1, "pos_idx": 10 },
+            { "id": 12, "word": "insect", "phonetic": "[`ɪnsɛkt]", "pos": "n.", "meaning": "昆蟲", "strategy": "諧音記憶 (銀色特)", "mnemonic": "這隻昆蟲長得「銀色」且造型很「特」別。", "grid": 1, "pos_idx": 11 },
+            { "id": 13, "word": "nature", "phonetic": "[`neɪtʃɚ]", "pos": "n.", "meaning": "自然", "strategy": "字根拆解 (nat-天生)", "mnemonic": "大自然是天「生」的樣子，充滿了原始的生命力。", "grid": 1, "pos_idx": 12 },
+            { "id": 14, "word": "necklace", "phonetic": "[`nɛklɪs]", "pos": "n.", "meaning": "項鍊", "strategy": "圖像記憶 (長頸鹿項鍊)", "mnemonic": "在長長的脖子 (neck) 上戴著閃亮的項鍊。", "grid": 1, "pos_idx": 13 },
+            { "id": 15, "word": "pace", "phonetic": "[peɪs]", "pos": "n.", "meaning": "步調；速度", "strategy": "諧音記憶 (配速)", "mnemonic": "跑步要學會「配速」，才能維持穩定的步調。", "grid": 1, "pos_idx": 14 },
+            { "id": 16, "word": "package", "phonetic": "[`pækɪdʒ]", "pos": "n.", "meaning": "包裹", "strategy": "諧音記憶 (拍雞)", "mnemonic": "把包裹「拍」一「拍」，裡面竟然跳出一隻「雞」！", "grid": 2, "pos_idx": 0 },
+            { "id": 17, "word": "pressure", "phonetic": "[`prɛʃɚ]", "pos": "n.", "meaning": "壓力", "strategy": "諧音記憶 (噴水)", "mnemonic": "消防栓的高壓「噴水」柱噴向你，巨大的推力就是壓力。", "grid": 2, "pos_idx": 1 },
+            { "id": 18, "word": "proper", "phonetic": "[`prɑpɚ]", "pos": "adj.", "meaning": "適當的", "strategy": "諧音記憶 (跑婆)", "mnemonic": "「跑」去找「適當」的人當老「婆」。", "grid": 2, "pos_idx": 2 },
+            { "id": 19, "word": "prove", "phonetic": "[pruv]", "pos": "vt.", "meaning": "證明，證實", "strategy": "諧音記憶 (噴霧)", "mnemonic": "偵探用螢光「噴霧」在牆上一噴，立即證明了那裡有指紋。", "grid": 2, "pos_idx": 3 },
+            { "id": 20, "word": "relate", "phonetic": "[rɪ`leɪt]", "pos": "vi./vt.", "meaning": "有關聯", "strategy": "諧音記憶 (熱累)", "mnemonic": "這兩個人關係太「熱」情太有關聯，天天黏在一起看著都「累」。", "grid": 2, "pos_idx": 4 },
+            { "id": 21, "word": "request", "phonetic": "[rɪ`kwɛst]", "pos": "vt./n.", "meaning": "要求，請求", "strategy": "諧音記憶 (利快遞)", "mnemonic": "「利」用「快遞」送出信件，向國王提出正式請求。", "grid": 2, "pos_idx": 5 },
+            { "id": 22, "word": "short", "phonetic": "[ʃɔrt]", "pos": "adj.", "meaning": "短的；矮的", "strategy": "諧音記憶 (秀腿)", "mnemonic": "穿上超短褲來「秀」一下我這雙「矮」短的「腿」。", "grid": 2, "pos_idx": 6 },
+            { "id": 23, "word": "solution", "phonetic": "[sə`luʃən]", "pos": "n.", "meaning": "解決方法", "strategy": "諧音記憶 (疏螺旋)", "mnemonic": "用力「疏」通這顆生鏽的「螺旋」瓶蓋，就是解決方法。", "grid": 2, "pos_idx": 7 },
+            { "id": 24, "word": "tiny", "phonetic": "[`taɪnɪ]", "pos": "adj.", "meaning": "極小的", "strategy": "諧音記憶 (太泥)", "mnemonic": "這隻蟲「太」多「泥」巴在身上，看起來更微小了。", "grid": 2, "pos_idx": 8 },
+            { "id": 25, "word": "treatment", "phonetic": "[`tritmənt]", "pos": "n.", "meaning": "對待；治療", "strategy": "諧音記憶 (趣特麵)", "mnemonic": "醫生的治療處方竟然是：每天吃一碗「趣特麵」。", "grid": 2, "pos_idx": 9 }
+        ];
+
+        const gridImages = {
+            1: 'https://github.com/terenceylhc/cev/blob/main/u11g1.jpg?raw=true',
+            2: 'https://github.com/terenceylhc/cev/blob/main/u11g2.jpg?raw=true'
+        };
+
+        function speak(text) {
+            const msg = new SpeechSynthesisUtterance();
+            msg.text = text;
+            msg.lang = 'en-US';
+            window.speechSynthesis.speak(msg);
+        }
+
+        function createCard(data) {
+            const col = data.pos_idx % 4;
+            const row = Math.floor(data.pos_idx / 4);
+            const posX = col * 33.333;
+            const posY = row * 33.333;
+
+            const card = document.createElement('div');
+            card.className = 'card-container';
+            card.innerHTML = `
+                <div class="card-inner" onclick="handleCardClick(this, '${data.word}')">
+                    <!-- 正面 -->
+                    <div class="card-front">
+                        <div class="sprite-container">
+                            <div class="sprite-img" style="background-image: url('${gridImages[data.grid]}'); background-position: ${posX}% ${posY}%;"></div>
+                        </div>
+                        <div class="flex-grow flex flex-col justify-center items-center p-4">
+                            <h2 class="text-4xl font-bold mb-3">${data.word}</h2>
+                            <div class="flex items-center gap-3">
+                                <span class="text-gray-400 font-mono text-xl">${data.phonetic}</span>
+                                <button class="btn-audio" onclick="event.stopPropagation(); speak('${data.word}')">
+                                    🔊
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 反面：修正策略標籤與緊湊佈局 -->
+                    <div class="card-back">
+                        <h2 class="text-6xl font-bold text-blue-900">${data.word}</h2>
+                        <div class="flex items-center justify-center gap-4">
+                            <div class="pos-badge">${data.pos}</div>
+                            <span class="text-5xl font-bold text-gray-800">${data.meaning}</span>
+                        </div>
+                        <div class="text-2xl text-gray-500 font-medium flex items-center">
+                            💡 策略：${data.strategy}
+                        </div>
+                        <div class="mnemonic-box-v2">
+                            ${data.mnemonic}
+                        </div>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function handleCardClick(innerElement, word) {
+            const container = innerElement.parentElement;
+            const isFlippingToBack = !container.classList.contains('is-flipped');
+            container.classList.toggle('is-flipped');
+            if (isFlippingToBack) {
+                setTimeout(() => speak(word), 200);
+            }
+        }
+
+        function renderCards() {
+            const display = document.getElementById('vocab-display');
+            vocabData.forEach(item => {
+                display.appendChild(createCard(item));
+            });
+        }
+
+        window.onload = renderCards;
+    </script>
+</body>
+</html>
