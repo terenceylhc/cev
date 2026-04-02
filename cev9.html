@@ -5,32 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🧠 互動單字記憶卡</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #2C3E50;
-            --accent: #E67E22;
-            --strategy-blue: #1D4ED8; /* 記憶策略專用藍色 */
-            --bg-light: #F8F9FA;
+            --primary-dark: #0f172a;
+            --slate-phonetic: #64748b;
+            --accent-orange: #ff9800;
+            --bg-light: #f8fafc;
+            --card-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
         }
 
         body {
             background-color: var(--bg-light);
-            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            color: var(--primary-dark);
+            margin: 0;
+            padding: 2rem 1rem;
         }
 
-        /* 3D Flip Card Effect */
+        /* 響應式網格布局 */
+        .vocab-grid {
+            display: grid;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        @media (min-width: 1024px) { .vocab-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 1023px) { .vocab-grid { grid-template-columns: 1fr; } }
+
+        /* 3D 翻轉效果 */
         .card-container {
-            perspective: 1000px;
-            height: 520px; 
+            perspective: 1500px;
+            cursor: pointer;
         }
 
         .card-inner {
             position: relative;
             width: 100%;
             height: 100%;
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 540px;
+            transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
             transform-style: preserve-3d;
-            cursor: pointer;
         }
 
         .card-container.flipped .card-inner {
@@ -42,132 +57,147 @@
             width: 100%;
             height: 100%;
             backface-visibility: hidden;
-            border-radius: 1.5rem;
-            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+            border-radius: 28px;
             background: white;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
             display: flex;
             flex-direction: column;
         }
 
         .card-back {
             transform: rotateY(180deg);
-            padding: 2rem;
+            padding: 2.5rem;
+            justify-content: center;
+            align-items: center;
             text-align: center;
-            justify-content: center; /* 垂直置中 */
-            align-items: center;    /* 水平置中 */
         }
 
-        /* CSS Sprite Logic (4x4 Grid) */
+        /* 影像無框化技術：406% 溢位裁切 */
         .sprite-img {
             width: 100%;
             aspect-ratio: 16 / 9;
-            background-size: 400% 400%; 
+            background-size: 406% 406%; 
             background-repeat: no-repeat;
-            border-bottom: 2px solid #eee;
+            background-color: #f1f5f9;
         }
 
-        /* Responsive Columns */
-        .vocab-grid {
-            display: grid;
-            gap: 2rem;
-            padding: 1rem;
+        /* 正面文字區 */
+        .front-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
         }
 
-        @media (min-width: 769px) {
-            .vocab-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        @media (max-width: 768px) {
-            .vocab-grid { grid-template-columns: 1fr; }
-        }
-
-        /* Mnemonic Box Style */
+        /* 記憶口訣方塊 */
         .mnemonic-box {
-            background-color: #FFF3E0;
-            border-left: 5px solid var(--accent);
-            padding: 1.25rem;
-            color: #d35400;
-            font-size: 1.25rem;
-            line-height: 1.6;
+            background-color: var(--accent-orange);
+            color: white;
+            padding: 1.2rem 1.8rem;
+            border-radius: 20px;
+            font-size: 1.35rem;
+            font-weight: 800;
+            line-height: 1.5;
+            margin: 1.5rem 0;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
+        }
+
+        .pos-badge {
+            background-color: #e2e8f0;
+            padding: 0.3rem 0.8rem;
+            border-radius: 8px;
+            font-weight: 800;
+            font-style: italic;
+            font-size: 1.1rem;
+            color: #475569;
+            margin-right: 0.75rem;
+        }
+
+        .example-section {
+            border-top: 1.5px dashed #e2e8f0;
+            width: 100%;
+            padding-top: 1.5rem;
             margin-top: 1rem;
-            border-radius: 0 0.5rem 0.5rem 0;
-            max-width: 95%;
         }
 
         .speaker-btn {
-            transition: transform 0.2s;
-            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 1.5rem;
         }
-        .speaker-btn:hover { transform: scale(1.2); }
+        .speaker-btn:hover { transform: scale(1.25); }
 
-        /* Highlight specific keywords in mnemonic */
-        strong { color: var(--accent); font-weight: 800; text-decoration: underline; }
+        strong { text-decoration: underline; text-underline-offset: 4px; }
     </style>
 </head>
 <body>
 
-<div class="max-w-6xl mx-auto py-12 px-4">
-    <header class="text-center mb-12">
-        <h1 class="text-5xl font-black text-[#2C3E50] mb-4">🧠 核心單字Unit 9互動單字記憶卡</h1>
-        <p class="text-xl text-gray-500 font-medium">點擊卡片翻轉查看，點擊 🔊 聆聽美式發音</p>
+<div class="max-w-6xl mx-auto">
+    <header class="text-center mb-16">
+        <h1 class="text-5xl md:text-6xl font-[900] text-[#0f172a] tracking-tight mb-4">🧠 互動單字記憶卡</h1>
+        <p class="text-slate-500 text-xl font-medium">翻轉卡片探索記憶秘訣，點擊發音加深印象</p>
     </header>
 
     <div id="vocab-container" class="vocab-grid">
-        <!-- JS 注入卡片 -->
+        <!-- JS 動態注入 -->
     </div>
 </div>
 
 <script>
     const vocabularyData = [
-        { en: "common", ph: "[kɑmən]", pos: "adj.", cn: "常見的；共同的", ex: "It is common for students to feel nervous before exams.", grid: 1, gridPos: 1, strategy: "諧音記憶「卡門」", mnemonic: "在「**卡門**」口大家都要刷卡進門，這是最常見的共同動作。" },
-        { en: "consider", ph: "[kən`sɪdɚ]", pos: "vt.", cn: "認為；考慮", ex: "Please consider my suggestion before making a choice.", grid: 1, gridPos: 2, strategy: "字根拆解「看星星」", mnemonic: "大家聚在一起(**con**)看星星(**sider**)，考慮未來的命運。" },
-        { en: "displease", ph: "[dɪs`pliz]", pos: "vt.", cn: "使不高興", ex: "The noise from the street displeased the residents.", grid: 1, gridPos: 3, strategy: "字根拆解", mnemonic: "不(**dis**)讓你開心(**please**)，就是使你不高興。" },
-        { en: "earn", ph: "[ɝn]", pos: "vt.", cn: "賺（錢）；贏得", ex: "He works hard to earn enough money for his family.", grid: 1, gridPos: 4, strategy: "諧音記憶「嗯～」", mnemonic: "拿到辛苦賺來的薪水，發出心滿意足的「**嗯～**」一聲。" },
-        { en: "effect", ph: "[ɪ`fɛkt]", pos: "n.", cn: "結果；影響", ex: "The medicine had a positive effect on her health.", grid: 1, gridPos: 5, strategy: "圖像記憶", mnemonic: "蝴蝶拍拍翅膀產生的結果，對世界有巨大的影響。" },
-        { en: "example", ph: "[ɪɡ`zæmpl]", pos: "n.", cn: "實例；模範", ex: "Can you give me an example of how to use this word?", grid: 1, gridPos: 6, strategy: "諧音記憶「三寶」", mnemonic: "路上看到一個**三寶**亂切車道，就是交通違規最好的實例。" },
-        { en: "glow", ph: "[ɡlo]", pos: "vi./n.", cn: "發光；光輝", ex: "The glow from the candles filled the room.", grid: 1, gridPos: 7, strategy: "諧音記憶「菇肉」", mnemonic: "吃了神奇的「**菇肉**」後，整個人都會發光，充滿光輝。" },
-        { en: "history", ph: "[`hɪstərɪ]", pos: "n.", cn: "歷史", ex: "She loves reading books about ancient history.", grid: 1, gridPos: 8, strategy: "字根拆解", mnemonic: "向過去的故事 (**story**) 打聲招呼 (**Hi**)，這就是歷史。" },
-        { en: "hurt", ph: "[hɝt]", pos: "vt./vi.", cn: "使疼痛；受傷；傷害", ex: "Be careful not to hurt yourself with that knife.", grid: 1, gridPos: 9, strategy: "諧音記憶「喝特」", mnemonic: "受傷很疼痛，**喝**點**特**調藥水就不痛了。" },
-        { en: "join", ph: "[dʒɔɪn]", pos: "vi./vt.", cn: "加入；參加", ex: "Would you like to join us for dinner?", grid: 1, gridPos: 10, strategy: "諧音記憶「揪人」", mnemonic: "趕快「**揪人**」一起來加入社團、參加派對。" },
-        { en: "last", ph: "[læst]", pos: "vi./adj.", cn: "持續/最後的", ex: "The meeting lasted for three hours.", grid: 1, gridPos: 11, strategy: "諧音記憶「拉死」", mnemonic: "最後一個隊員拚命**拉**到**死**都不放，看誰能持續最久。" },
-        { en: "lead", ph: "[lid]", pos: "vt./vi.", cn: "引領；導致", ex: "The guide will lead us through the forest.", grid: 1, gridPos: 12, strategy: "圖像記憶", mnemonic: "拿著手電筒在黑夜中引領大家前進。" },
-        { en: "model", ph: "[`mɑdl]", pos: "n.", cn: "模型；模特兒；模範", ex: "He built a model of the Eiffel Tower.", grid: 1, gridPos: 13, strategy: "圖像記憶", mnemonic: "時尚模特兒穿著華麗衣服走秀，她是大家的模範。" },
-        { en: "painting", ph: "[`pentɪŋ]", pos: "n.", cn: "畫", ex: "This is a beautiful painting of the ocean.", grid: 1, gridPos: 14, strategy: "圖像記憶", mnemonic: "用噴漆在畫布上噴出一幅色彩繽紛的畫。" },
-        { en: "pants", ph: "[pænts]", pos: "n.", cn: "褲子", ex: "I need to buy a new pair of pants.", grid: 1, gridPos: 15, strategy: "諧音記憶「騙子」", mnemonic: "這個**騙子**說謊到連褲子都著火了！" },
-        { en: "possible", ph: "[`pɑsəbl]", pos: "adj.", cn: "可能的", ex: "Is it possible to finish the project by Friday?", grid: 1, gridPos: 16, strategy: "諧音記憶「怕失敗」", mnemonic: "因為**怕失敗**，所以要把所有可能的方案都準備好。" },
-        { en: "sailing", ph: "[`selɪŋ]", pos: "n.", cn: "啟航；出航", ex: "Sailing across the Atlantic was a great adventure.", grid: 2, gridPos: 1, strategy: "圖像記憶", mnemonic: "巨大的白帆展開，這艘船準備好要啟航。" },
-        { en: "salt", ph: "[sɔlt]", pos: "n.", cn: "鹽", ex: "Could you pass the salt, please?", grid: 2, gridPos: 2, strategy: "諧音記憶「搜它」", mnemonic: "警察**搜它**的口袋，以為是毒品，結果只是一包鹽。" },
-        { en: "sand", ph: "[sænd]", pos: "n.", cn: "沙", ex: "The children are playing in the sand on the beach.", grid: 2, gridPos: 3, strategy: "諧音記憶「散」", mnemonic: "沙子太細，在手中一抓就**散**得到處都是。" },
-        { en: "scene", ph: "[sin]", pos: "n.", cn: "場景；景色", ex: "The movie's opening scene was filmed in Paris.", grid: 2, gridPos: 4, strategy: "諧音記憶「戲」", mnemonic: "這場**戲**要在泥潭裡拍，真是一個狼狽的場景。" },
-        { en: "select", ph: "[sə`lɛkt]", pos: "vt.", cn: "挑選", ex: "She carefully selected a dress for the party.", grid: 2, gridPos: 5, strategy: "字根拆解", mnemonic: "把最好的挑選(**lect**)出來，跟爛的分開(**se**)放。" },
-        { en: "tax", ph: "[tæks]", pos: "n.", cn: "稅", ex: "The government decided to increase the sales tax.", grid: 2, gridPos: 6, strategy: "諧音記憶「抬死」", mnemonic: "這個稅金重到要把人給**抬死**了。" },
-        { en: "user", ph: "[`juzɚ]", pos: "n.", cn: "使用者", ex: "The software has millions of active users.", grid: 2, gridPos: 7, strategy: "圖像記憶", mnemonic: "使用者正戴著虛擬實境耳機，沉浸在科技中。" },
-        { en: "view", ph: "[vju]", pos: "n.", cn: "觀點；視野；景色", ex: "The view from the top of the mountain is breathtaking.", grid: 2, gridPos: 8, strategy: "諧音記憶", mnemonic: "站在山頂比對各個物體，這裡的視野真好。" },
-        { en: "winner", ph: "[`wɪnɚ]", pos: "n.", cn: "勝利者", ex: "The winner of the race received a gold medal.", grid: 2, gridPos: 9, strategy: "圖像記憶", mnemonic: "勝利者站在第一名位置，高舉發光的獎盃。" }
+        // Grid 1 (u9g1)
+        { en: "common", ph: "[kɑmən]", pos: "adj.", cn: "常見的；共同的", ex: "It is common for students to feel nervous before exams.", grid: 1, idx: 0, strategy: "諧音記憶「卡門」", mnemonic: "在「<strong>卡門</strong>」口大家都要刷卡進門，這是最常見的共同動作。" },
+        { en: "consider", ph: "[kən`sɪdɚ]", pos: "vt.", cn: "認為；考慮", ex: "Please consider my suggestion before making a choice.", grid: 1, idx: 1, strategy: "字根拆解「看星星」", mnemonic: "大家聚在一起(<strong>con</strong>)看星星(<strong>sider</strong>)，考慮未來的命運。" },
+        { en: "displease", ph: "[dɪs`pliz]", pos: "vt.", cn: "使不高興", ex: "The noise from the street displeased the residents.", grid: 1, idx: 2, strategy: "字根拆解", mnemonic: "不(<strong>dis</strong>)讓你開心(<strong>please</strong>)，就是使你不高興。" },
+        { en: "earn", ph: "[ɝn]", pos: "vt.", cn: "賺（錢）；贏得", ex: "He works hard to earn enough money for his family.", grid: 1, idx: 3, strategy: "諧音記憶「嗯～」", mnemonic: "拿到辛苦賺來的薪水，發出心滿意足的「<strong>嗯～</strong>」一聲。" },
+        { en: "effect", ph: "[ɪ`fɛkt]", pos: "n.", cn: "結果；影響", ex: "The medicine had a positive effect on her health.", grid: 1, idx: 4, strategy: "圖像記憶", mnemonic: "蝴蝶拍拍翅膀產生的<strong>結果</strong>，對世界有巨大的影響。" },
+        { en: "example", ph: "[ɪɡ`zæmpl]", pos: "n.", cn: "實例；模範", ex: "Can you give me an example of how to use this word?", grid: 1, idx: 5, strategy: "諧音記憶「三寶」", mnemonic: "路上看到一個<strong>三寶</strong>亂切車道，就是交通違規最好的實例。" },
+        { en: "glow", ph: "[ɡlo]", pos: "vi./n.", cn: "發光；光輝", ex: "The glow from the candles filled the room.", grid: 1, idx: 6, strategy: "諧音記憶「菇肉」", mnemonic: "吃了神奇的「<strong>菇肉</strong>」後，整個人都會發光，充滿光輝。" },
+        { en: "history", ph: "[`hɪstərɪ]", pos: "n.", cn: "歷史", ex: "She loves reading books about ancient history.", grid: 1, idx: 7, strategy: "字根拆解", mnemonic: "向過去的故事 (<strong>story</strong>) 打聲招呼 (<strong>Hi</strong>)，這就是歷史。" },
+        { en: "hurt", ph: "[hɝt]", pos: "vt./vi.", cn: "使疼痛；傷害", ex: "Be careful not to hurt yourself with that knife.", grid: 1, idx: 8, strategy: "諧音記憶「喝特」", mnemonic: "受傷很疼痛，<strong>喝</strong>點<strong>特</strong>調藥水就不痛了。" },
+        { en: "join", ph: "[dʒɔɪn]", pos: "vi./vt.", cn: "加入；參加", ex: "Would you like to join us for dinner?", grid: 1, idx: 9, strategy: "諧音記憶「揪人」", mnemonic: "趕快「<strong>揪人</strong>」一起來加入社團、參加派對。" },
+        { en: "last", ph: "[læst]", pos: "vi./adj.", cn: "持續/最後的", ex: "The meeting lasted for three hours.", grid: 1, idx: 10, strategy: "諧音記憶「拉死」", mnemonic: "最後一個隊員拚命<strong>拉</strong>到<strong>死</strong>都不放，看誰能持續最久。" },
+        { en: "lead", ph: "[lid]", pos: "vt./vi.", cn: "引領；導致", ex: "The guide will lead us through the forest.", grid: 1, idx: 11, strategy: "圖像記憶", mnemonic: "拿著手電筒在黑夜中引領大家前進。" },
+        { en: "model", ph: "[`mɑdl]", pos: "n.", cn: "模特兒；模範", ex: "She is a model of hard work and dedication.", grid: 1, idx: 12, strategy: "圖像記憶", mnemonic: "時尚模特兒穿著華麗衣服走秀，她是大家的模範。" },
+        { en: "painting", ph: "[`pentɪŋ]", pos: "n.", cn: "畫", ex: "This is a beautiful painting of the ocean.", grid: 1, idx: 13, strategy: "圖像記憶", mnemonic: "用噴漆在畫布上噴出一幅色彩繽紛的畫。" },
+        { en: "pants", ph: "[pænts]", pos: "n.", cn: "褲子", ex: "I need to buy a new pair of pants.", grid: 1, idx: 14, strategy: "諧音記憶「騙子」", mnemonic: "這個<strong>騙子</strong>說謊到連褲子都著火了！" },
+        // Grid 2 (u9g2)
+        { en: "possible", ph: "[`pɑsəbl]", pos: "adj.", cn: "可能的", ex: "Is it possible to finish the project by Friday?", grid: 2, idx: 0, strategy: "諧音記憶「怕失敗」", mnemonic: "因為<strong>怕失敗</strong>，所以要把所有可能的方案都準備好。" },
+        { en: "sailing", ph: "[`selɪŋ]", pos: "n.", cn: "啟航；出航", ex: "Sailing across the Atlantic was a great adventure.", grid: 2, idx: 1, strategy: "圖像記憶", mnemonic: "巨大的白帆展開，這艘船準備好要啟航。" },
+        { en: "salt", ph: "[sɔlt]", pos: "n.", cn: "鹽", ex: "Could you pass the salt, please?", grid: 2, idx: 2, strategy: "諧音記憶「搜它」", mnemonic: "警察<strong>搜它</strong>的口袋，以為是毒品，結果只是一包鹽。" },
+        { en: "sand", ph: "[sænd]", pos: "n.", cn: "沙", ex: "The children are playing in the sand on the beach.", grid: 2, idx: 3, strategy: "諧音記憶「散」", mnemonic: "沙子太細，在手中一抓就<strong>散</strong>得到處都是。" },
+        { en: "scene", ph: "[sin]", pos: "n.", cn: "場景；景色", ex: "The movie's opening scene was filmed in Paris.", grid: 2, idx: 4, strategy: "諧音記憶「戲」", mnemonic: "這場<strong>戲</strong>要在泥潭裡拍，真是一個狼狽的場景。" },
+        { en: "select", ph: "[sə`lɛkt]", pos: "vt.", cn: "挑選", ex: "She carefully selected a dress for the party.", grid: 2, idx: 5, strategy: "字根拆解", mnemonic: "把最好的挑選(<strong>lect</strong>)出來，跟爛的分開(<strong>se</strong>)放。" },
+        { en: "tax", ph: "[tæks]", pos: "n.", cn: "稅", ex: "The government decided to increase the sales tax.", grid: 2, idx: 6, strategy: "諧音記憶「抬死」", mnemonic: "這個稅金重到要把人給<strong>抬死</strong>了。" },
+        { en: "user", ph: "[`juzɚ]", pos: "n.", cn: "使用者", ex: "The software has millions of active users.", grid: 2, idx: 7, strategy: "圖像記憶", mnemonic: "使用者正戴著虛擬實境耳機，沉浸在科技中。" },
+        { en: "view", ph: "[vju]", pos: "n.", cn: "觀點；視野", ex: "The view from the top of the mountain is breathtaking.", grid: 2, idx: 8, strategy: "諧音記憶", mnemonic: "站在山頂比對各個物體，這裡的視野真好。" },
+        { en: "winner", ph: "[`wɪnɚ]", pos: "n.", cn: "勝利者", ex: "The winner of the race received a gold medal.", grid: 2, idx: 9, strategy: "圖像記憶", mnemonic: "勝利者站在第一名位置，高舉發光的獎盃。" }
     ];
 
-    const gridImages = {
+    const imgUrls = {
         1: 'https://raw.githubusercontent.com/terenceylhc/cev/main/u9g1.jpg',
         2: 'https://raw.githubusercontent.com/terenceylhc/cev/main/u9g2.jpg'
     };
 
-    function getSpritePos(gridPos) {
-        const idx = gridPos - 1;
-        const x = (idx % 4) * 33.333;
-        const y = Math.floor(idx / 4) * 33.333;
-        return `${x}% ${y}%`;
-    }
-
     function speak(text) {
-        const msg = new SpeechSynthesisUtterance();
-        msg.text = text;
-        msg.lang = 'en-US';
-        msg.rate = 0.85;
-        window.speechSynthesis.speak(msg);
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'en-US';
+            msg.rate = 0.8;
+            window.speechSynthesis.speak(msg);
+        }
     }
 
     function createCard(item) {
+        const col = item.idx % 4;
+        const row = Math.floor(item.idx / 4);
+        const posX = col * 33.3333;
+        const posY = row * 33.3333;
+
         const container = document.createElement('div');
         container.className = 'card-container';
         
@@ -180,70 +210,62 @@
             if (isFlipped) speak(item.en);
         };
 
-        // Front Side
+        // Front
         const front = document.createElement('div');
         front.className = 'card-front';
         
         const sprite = document.createElement('div');
         sprite.className = 'sprite-img';
-        sprite.style.backgroundImage = `url(${gridImages[item.grid]})`;
-        sprite.style.backgroundPosition = getSpritePos(item.gridPos);
+        sprite.style.backgroundImage = `url(${imgUrls[item.grid]})`;
+        sprite.style.backgroundPosition = `${posX}% ${posY}%`;
         
-        const frontText = document.createElement('div');
-        frontText.className = 'p-8 flex-grow flex flex-col justify-center items-center text-center';
-        frontText.innerHTML = `
-            <div class="flex items-center gap-4 mb-2">
-                <span class="text-5xl font-black text-slate-800 tracking-tight">${item.en}</span>
-                <button class="speaker-btn text-3xl" onclick="speak('${item.en}')">🔊</button>
+        const frontContent = document.createElement('div');
+        frontContent.className = 'front-content';
+        frontContent.innerHTML = `
+            <div class="text-[2.5rem] font-[900] text-[#0f172a] mb-1 tracking-tight">${item.en}</div>
+            <div class="flex items-center gap-3">
+                <span class="text-[1.1rem] text-[#64748b] font-medium italic">${item.ph}</span>
+                <button class="speaker-btn" onclick="speak('${item.en}')">🔊</button>
             </div>
-            <p class="text-2xl text-slate-500 font-serif italic">${item.ph}</p>
         `;
 
-        // Back Side
+        // Back
         const back = document.createElement('div');
         back.className = 'card-back';
-        
-        const formattedMnemonic = item.mnemonic.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
         back.innerHTML = `
-            <div class="w-full max-w-[90%] flex flex-col items-center">
-                <h2 class="text-6xl font-black text-slate-900 mb-2">${item.en}</h2>
-                <div class="h-1.5 w-24 bg-orange-500 mx-auto mb-8"></div>
-                
-                <div class="flex items-baseline justify-center gap-4 mb-6">
-                    <span class="text-2xl text-blue-600 font-bold italic opacity-80">${item.pos}</span>
-                    <span class="text-4xl text-slate-700 font-black">${item.cn}</span>
-                </div>
-                
-                <div class="text-xl text-slate-400 font-medium mb-8 italic px-6 line-clamp-2">
-                    "${item.ex}"
-                </div>
+            <div class="text-[3.2rem] font-[900] text-[#0f172a] leading-none mb-3 tracking-tighter">${item.en}</div>
+            <div class="flex items-center justify-center mb-6">
+                <span class="pos-badge">${item.pos}</span>
+                <span class="text-[1.6rem] font-bold text-slate-700">${item.cn}</span>
+            </div>
+            
+            <div class="text-[1.1rem] font-black text-[#1d4ed8] uppercase tracking-widest mb-2">
+                💡 策略：${item.strategy}
+            </div>
+            
+            <div class="mnemonic-box">
+                ${item.mnemonic}
+            </div>
 
-                <div class="w-full border-t border-slate-100 pt-6">
-                    <!-- 記憶策略：加大字體並改為藍色 -->
-                    <div class="text-xl font-extrabold text-blue-700 uppercase tracking-widest mb-4">
-                        💡 記憶策略：${item.strategy}
-                    </div>
-                    <div class="mnemonic-box mx-auto">
-                        ${formattedMnemonic}
-                    </div>
+            <div class="example-section">
+                <div class="text-[1.25rem] text-slate-400 italic px-4 leading-relaxed font-medium">
+                    "${item.ex}"
                 </div>
             </div>
         `;
 
         front.appendChild(sprite);
-        front.appendChild(frontText);
+        front.appendChild(frontContent);
         inner.appendChild(front);
         inner.appendChild(back);
         container.appendChild(inner);
         return container;
     }
 
-    const vocabContainer = document.getElementById('vocab-container');
+    const container = document.getElementById('vocab-container');
     vocabularyData.forEach(item => {
-        vocabContainer.appendChild(createCard(item));
+        container.appendChild(createCard(item));
     });
-
 </script>
 
 </body>
