@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 互動單字記憶卡</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+
+        /* 卡片容器：設定 3D 視角 */
+        .card-container {
+            perspective: 1000px;
+        }
+
+        /* 內部網格：正反面共用同一高度，自適應最高內容 */
+        .card-inner {
+            display: grid;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        /* 翻轉觸發 */
+        .card-inner.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* 正面與背面共用屬性 */
+        .card-front, .card-back {
+            grid-area: 1 / 1;
+            backface-visibility: hidden;
+            background-color: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 背面預設翻轉 180 度 */
+        .card-back {
+            transform: rotateY(180deg);
+        }
+
+        /* 影像裁切：406% 放大事實上消除了網格線 */
+        .sprite-img {
+            background-size: 406%;
+            background-repeat: no-repeat;
+            /* 圓角由父容器 overflow: hidden 處理，確保沒有黑邊溢出 */
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <header class="max-w-7xl mx-auto mb-10 text-center">
+        <h1 class="text-4xl md:text-5xl font-black text-[#0f172a] mb-4">🧠 U12 互動單字記憶卡</h1>
+        <p class="text-lg text-[#64748b]">統測核心單字 U12 - 點擊卡片翻面並自動朗讀</p>
+    </header>
+
+    <main id="app-container" class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
+        <!-- 卡片將由 JavaScript 動態生成注入此處 -->
+    </main>
+
+    <script>
+        const imgUrls = {
+            1: "https://raw.githubusercontent.com/terenceylhc/cev/main/u12g1.jpg",
+            2: "https://raw.githubusercontent.com/terenceylhc/cev/main/u12g2.jpg"
+        };
+
+        const wordsData = [
+            { "en": "admit", "ph": "[əd`mɪt]", "pos": "v.", "cn": "承認", "strategy": "諧音 (台語：阿嬤)", "mnemonic": "阿嬤（admit）終於承認，廚房裡的魚是她偷吃的。", "ex": "He finally admitted his mistake.", "grid": 1, "pos_idx": 0 },
+            { "en": "attract", "ph": "[ə`trækt]", "pos": "v.", "cn": "吸引", "strategy": "字根 (at-朝向 + tract-拉)", "mnemonic": "朝這個方向拉（tract）過來，能吸引磁鐵全部吸在一起。", "ex": "Bright colors can attract children's attention.", "grid": 1, "pos_idx": 1 },
+            { "en": "career", "ph": "[kə`rɪr]", "pos": "n.", "cn": "職業，事業", "strategy": "諧音 (國語：客運)", "mnemonic": "開客運（career）司機是開創他一生的職業與事業。", "ex": "She wants to pursue a career in journalism.", "grid": 1, "pos_idx": 2 },
+            { "en": "chip", "ph": "[tʃɪp]", "pos": "n.", "cn": "洋芋片，晶片", "strategy": "圖像 (洋芋片形狀的晶片)", "mnemonic": "高科技的晶片（chip）長得竟然跟一片洋芋片一模一樣。", "ex": "I like to eat potato chips while watching TV.", "grid": 1, "pos_idx": 3 },
+            { "en": "circle", "ph": "[`s3k!]", "pos": "n./v.", "cn": "圓圈 / 圈出", "strategy": "字根 (circ-圓)", "mnemonic": "用圓規在紙上畫出一個完美的圓圈（circle），並把重點圈出。", "ex": "Please draw a circle on the paper.", "grid": 1, "pos_idx": 4 },
+            { "en": "clap", "ph": "[klæp]", "pos": "v.", "cn": "鼓掌，拍手", "strategy": "諧音 (國語：可樂餅)", "mnemonic": "一看到可樂餅（clap）上桌，小朋友就興奮地鼓掌拍手。", "ex": "The audience began to clap after the show.", "grid": 1, "pos_idx": 5 },
+            { "en": "current", "ph": "[`k3rənt]", "pos": "adj.", "cn": "現在的，當前的", "strategy": "諧音 (國語：刻人)", "mnemonic": "刻一個新人（current）的雕像，是當前的首要任務。", "ex": "What is your current phone number?", "grid": 1, "pos_idx": 6 },
+            { "en": "discuss", "ph": "[dɪ`skʌs]", "pos": "v.", "cn": "討論", "strategy": "諧音 (國語：迪斯可)", "mnemonic": "大家一邊跳迪斯可（discuss），一邊激烈地討論功課。", "ex": "We need to discuss our travel plans.", "grid": 1, "pos_idx": 7 },
+            { "en": "engineer", "ph": "[ˌɛndʒɪ`nɪr]", "pos": "n.", "cn": "工程師", "strategy": "諧音 (國語：引擎鳥)", "mnemonic": "這隻巨大的引擎鳥（engineer）是由天才工程師發明出來的。", "ex": "My brother is a software engineer.", "grid": 1, "pos_idx": 8 },
+            { "en": "govern", "ph": "[`gʌvɚn]", "pos": "v.", "cn": "統治，治理", "strategy": "諧音 (國語：鴿王)", "mnemonic": "鴿王（govern）戴上皇冠，開始統治並治理整個鳥類王國。", "ex": "The king used to govern the country.", "grid": 1, "pos_idx": 9 },
+            { "en": "internal", "ph": "[ɪn`t3nL]", "pos": "adj.", "cn": "內部的", "strategy": "字根 (inter-在...之內)", "mnemonic": "包裹在最內部（internal）的禮物，才是最重要的。", "ex": "The internal organs must be protected well.", "grid": 1, "pos_idx": 10 },
+            { "en": "invite", "ph": "[ɪn`vaɪt]", "pos": "v.", "cn": "邀請", "strategy": "諧音 (國語：銀牌)", "mnemonic": "拿到這面銀牌（invite），我就能邀請大家來參加我的慶功宴。", "ex": "They invited us to their wedding party.", "grid": 1, "pos_idx": 11 },
+            { "en": "junk", "ph": "[dʒʌŋk]", "pos": "n.", "cn": "垃圾，廢棄舊物", "strategy": "諧音 (國語：撞客)", "mnemonic": "垃圾車開太快撞到顧客（junk），噴得滿街都是垃圾和廢棄舊物。", "ex": "Please clear out the junk in the yard.", "grid": 1, "pos_idx": 12 },
+            { "en": "language", "ph": "[`læŋgwɪdʒ]", "pos": "n.", "cn": "語言", "strategy": "諧音 (國語：懶鬼姐)", "mnemonic": "那個懶鬼姐（language）竟然學會了五種外國語言。", "ex": "English is an international language.", "grid": 1, "pos_idx": 13 },
+            { "en": "legal", "ph": "[`ligL]", "pos": "adj.", "cn": "合法的，法律的", "strategy": "諧音 (國語：利高)", "mnemonic": "做合法的生意、遵守法律的規定，獲利才會高（legal）。", "ex": "It is your legal right to vote.", "grid": 1, "pos_idx": 14 },
+            { "en": "method", "ph": "[`mɛθəd]", "pos": "n.", "cn": "方法，辦法", "strategy": "諧音 (國語：沒事)", "mnemonic": "只要找到對的方法（method），一切都沒事了。", "ex": "We should try a different method to solve the problem.", "grid": 2, "pos_idx": 0 },
+            { "en": "neighbor", "ph": "[`nebɚ]", "pos": "n.", "cn": "鄰居", "strategy": "諧音 (國語：奶寶)", "mnemonic": "我的鄰居（neighbor）是個超級奶寶，天天哭著找媽媽。", "ex": "My neighbor is very friendly and always helps me.", "grid": 2, "pos_idx": 1 },
+            { "en": "networking", "ph": "[`nɛtw3kɪŋ]", "pos": "n.", "cn": "網路連結", "strategy": "圖像 (網格 networking 與網球網)", "mnemonic": "這個高科技網路連結（networking）的線路，織得像一張網球網。", "ex": "The office is maintaining the company's networking hardware.", "grid": 2, "pos_idx": 2 },
+            { "en": "period", "ph": "[`pɪrɪəd]", "pos": "n.", "cn": "時期，期間", "strategy": "諧音 (國語：批綠的)", "mnemonic": "在期末考這段時期（period），他瘋狂批綠的標籤來分類考試重點。", "ex": "The historical event happened over a long period.", "grid": 2, "pos_idx": 3 },
+            { "en": "popular", "ph": "[`pɑpjəlɚ]", "pos": "adj.", "cn": "受歡迎的，流行的", "strategy": "諧音 (國語：爆米花)", "mnemonic": "這桶爆米花（popular）香氣四溢，在電影院裡最受歡迎。", "ex": "Jeans are always popular with young people.", "grid": 2, "pos_idx": 4 },
+            { "en": "promise", "ph": "[`prɑmɪs]", "pos": "n./v.", "cn": "保證，承諾", "strategy": "諧音 (國語：波羅蜜)", "mnemonic": "我向你保證與承諾（promise），這顆巨大的波羅蜜絕對超甜！", "ex": "You must keep the promise you made.", "grid": 2, "pos_idx": 5 },
+            { "en": "punish", "ph": "[`pʌnɪʃ]", "pos": "v.", "cn": "處罰，懲罰", "strategy": "諧音 (國語：噴泥沙)", "mnemonic": "因為調皮亂噴泥沙（punish）弄髒車子，他被爸爸狠狠處罰。", "ex": "The boy was punished for being late again.", "grid": 2, "pos_idx": 6 },
+            { "en": "regular", "ph": "[`rɛgjəlɚ]", "pos": "adj.", "cn": "規律的，定期的", "strategy": "諧音 (國語：熱狗啦)", "mnemonic": "他每天早餐定期、規律地只吃一根熱狗啦（regular）。", "ex": "You should exercise on a regular basis.", "grid": 2, "pos_idx": 7 },
+            { "en": "scarcely", "ph": "[`skɛrslɪ]", "pos": "adv.", "cn": "幾乎不", "strategy": "諧音 (國語：死格子)", "mnemonic": "這個迷宮全是死格子（scarcely），讓人幾乎不前進、走不出來。", "ex": "Betty had scarcely finished her breakfast when the bus arrived.", "grid": 2, "pos_idx": 8 },
+            { "en": "simple", "ph": "[`sɪmpL]", "pos": "adj.", "cn": "單純的，簡單的", "strategy": "諧音 (國語：仙婆)", "mnemonic": "仙婆（simple）揮一揮仙女棒，就把複雜的難題變成簡單的加法。", "ex": "Cooking pasta is a simple task for beginners.", "grid": 2, "pos_idx": 9 }
+        ];
+
+        function speakWord(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.85; // 稍微放慢，讓發音更清晰
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        const container = document.getElementById('app-container');
+
+        wordsData.forEach((data, index) => {
+            // 計算 4x4 網格的背景位置百分比
+            const col = data.pos_idx % 4;
+            const row = Math.floor(data.pos_idx / 4);
+            const bgPosX = (col / 3) * 100; 
+            const bgPosY = (row / 3) * 100;
+            const imageUrl = imgUrls[data.grid];
+
+            // 建立卡片外層
+            const cardEl = document.createElement('div');
+            cardEl.className = 'card-container w-full h-auto';
+
+            // 建立卡片翻轉內層
+            const innerEl = document.createElement('div');
+            innerEl.className = 'card-inner w-full h-full';
+            
+            // 點擊事件：翻轉與朗讀
+            innerEl.addEventListener('click', () => {
+                const isFlipped = innerEl.classList.toggle('is-flipped');
+                if(isFlipped) {
+                    speakWord(data.en);
+                }
+            });
+
+            // --- 正面呈現 (Visual Cue Panel) ---
+            const frontEl = document.createElement('div');
+            frontEl.className = 'card-front';
+            
+            frontEl.innerHTML = `
+                <div class="w-full aspect-video rounded-t-[28px] overflow-hidden relative border-b border-gray-100">
+                    <div class="sprite-img absolute inset-0 w-full h-full" 
+                         style="background-image: url('${imageUrl}'); 
+                                background-position: ${bgPosX}% ${bgPosY}%;">
+                    </div>
+                </div>
+                <div class="flex-1 p-6 flex flex-col justify-center items-center h-full min-h-[140px]">
+                    <h2 class="text-[2.5rem] font-black text-[#0f172a] leading-none mb-3">${data.en}</h2>
+                    <div class="text-[1.1rem] text-[#64748b] flex items-center gap-2 font-medium">
+                        <span>🔊</span>
+                        <span>${data.ph}</span>
+                    </div>
+                </div>
+            `;
+
+            // --- 反面呈現 (Textual Content Panel) ---
+            const backEl = document.createElement('div');
+            backEl.className = 'card-back p-6 md:p-8 flex flex-col justify-center items-center text-center space-y-5';
+            
+            backEl.innerHTML = `
+                <div class="flex flex-col items-center gap-2">
+                    <h2 class="text-[3.2rem] font-black text-[#0f172a] leading-tight">${data.en}</h2>
+                    <div class="flex items-center gap-3 mt-1">
+                        <span class="text-[1.1rem] bg-[#e2e8f0] text-gray-700 italic font-bold px-3 py-1 rounded-md">
+                            ${data.pos}
+                        </span>
+                        <span class="text-[1.6rem] text-gray-800 font-bold">
+                            ${data.cn}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="w-full max-w-sm mt-2">
+                    <div class="text-[1.1rem] text-gray-500 font-medium mb-2">
+                        💡 策略：${data.strategy}
+                    </div>
+                    <div class="rounded-[20px] bg-[#ff9800] text-white font-bold text-[1.3rem] p-4 shadow-sm leading-relaxed">
+                        ${data.mnemonic}
+                    </div>
+                </div>
+
+                <div class="w-full border-t border-dashed border-gray-300 pt-5 mt-2">
+                    <p class="text-[1.25rem] text-gray-500 italic px-2">
+                        "${data.ex}"
+                    </p>
+                </div>
+            `;
+
+            innerEl.appendChild(frontEl);
+            innerEl.appendChild(backEl);
+            cardEl.appendChild(innerEl);
+            container.appendChild(cardEl);
+        });
+
+    </script>
+</body>
+</html>
