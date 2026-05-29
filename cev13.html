@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 互動單字記憶卡 (U13)</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-text: #0f172a;
+            --secondary-text: #64748b;
+            --accent-bg: #ff9800;
+            --tag-bg: #e2e8f0;
+            --card-shadow: 0 12px 30px rgba(0,0,0,0.08);
+            --border-radius: 28px;
+        }
+
+        body {
+            font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 2rem;
+            color: var(--primary-text);
+        }
+
+        h1 {
+            text-align: center;
+            font-weight: 900;
+            margin-bottom: 2rem;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 電腦版每列固定 2 張 */
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 768px) {
+            .grid-container {
+                grid-template-columns: 1fr; /* 手機版每列固定 1 張 */
+                padding: 1rem;
+            }
+        }
+
+        .flashcard {
+            perspective: 1000px; /* 3D 翻轉效果 */
+            height: auto; /* 高度自適應 */
+            cursor: pointer;
+        }
+
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            box-shadow: var(--card-shadow);
+            border-radius: var(--border-radius);
+            background-color: white;
+        }
+
+        .flashcard.flipped .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+
+        /* 卡片正面與反面共用樣式 */
+        .flashcard-front, .flashcard-back {
+            width: 100%;
+            -webkit-backface-visibility: hidden; /* Safari */
+            backface-visibility: hidden;
+            border-radius: var(--border-radius);
+            overflow: hidden; /* 確保內容不會溢出圓角 */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== 卡片正面 (Visual Cue Panel) ===== */
+        .flashcard-front {
+            /* 讓正面在未翻轉時顯示 */
+        }
+
+        /* 影像區 (徹底無框技術) */
+        .image-container {
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 比例 */
+            position: relative;
+            overflow: hidden; /* 視覺邊界控制 */
+            border-top-left-radius: var(--border-radius);
+            border-top-right-radius: var(--border-radius);
+        }
+
+        .sprite-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: 406%; /* 溢位裁切 (Safe Zone Cropping) */
+            background-repeat: no-repeat;
+        }
+
+        /* Grid 1 的位置設定 (4x4, 共15格) */
+        .g1-0 { background-position: 0% 0%; }
+        .g1-1 { background-position: 33.33% 0%; }
+        .g1-2 { background-position: 66.66% 0%; }
+        .g1-3 { background-position: 100% 0%; }
+        .g1-4 { background-position: 0% 33.33%; }
+        .g1-5 { background-position: 33.33% 33.33%; }
+        .g1-6 { background-position: 66.66% 33.33%; }
+        .g1-7 { background-position: 100% 33.33%; }
+        .g1-8 { background-position: 0% 66.66%; }
+        .g1-9 { background-position: 33.33% 66.66%; }
+        .g1-10 { background-position: 66.66% 66.66%; }
+        .g1-11 { background-position: 100% 66.66%; }
+        .g1-12 { background-position: 0% 100%; }
+        .g1-13 { background-position: 33.33% 100%; }
+        .g1-14 { background-position: 66.66% 100%; }
+
+        /* Grid 2 的位置設定 (4x4, 目前只用到前10格) */
+        .g2-0 { background-position: 0% 0%; }
+        .g2-1 { background-position: 33.33% 0%; }
+        .g2-2 { background-position: 66.66% 0%; }
+        .g2-3 { background-position: 100% 0%; }
+        .g2-4 { background-position: 0% 33.33%; }
+        .g2-5 { background-position: 33.33% 33.33%; }
+        .g2-6 { background-position: 66.66% 33.33%; }
+        .g2-7 { background-position: 100% 33.33%; }
+        .g2-8 { background-position: 0% 66.66%; }
+        .g2-9 { background-position: 33.33% 66.66%; }
+
+
+        /* 正面文字區 */
+        .front-content {
+            padding: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1; /* 填滿剩餘空間 */
+            gap: 1rem;
+        }
+
+        .front-word {
+            font-size: 2.5rem;
+            font-weight: 900;
+        }
+
+        .front-phonetic {
+            font-size: 1.1rem;
+            color: var(--secondary-text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .play-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            transition: transform 0.2s;
+        }
+        
+        .play-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* ===== 卡片反面 (Textual Content Panel) ===== */
+        .flashcard-back {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            transform: rotateY(180deg); /* 初始翻轉 180 度隱藏 */
+            padding: 2rem;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* 垂直居中排列 */
+            align-items: center;
+            text-align: center;
+        }
+
+        .back-word {
+            font-size: 3.2rem;
+            font-weight: 900;
+            color: var(--primary-text);
+            margin-bottom: 0.5rem;
+            line-height: 1.2;
+        }
+
+        .back-translation {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .pos-tag {
+            font-size: 1.1rem;
+            background-color: var(--tag-bg);
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-style: italic;
+            font-weight: bold;
+        }
+
+        .cn-meaning {
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .strategy-hint {
+            font-size: 1.1rem;
+            color: var(--secondary-text);
+            margin-bottom: 1rem;
+        }
+
+        .mnemonic-box {
+            background-color: var(--accent-bg);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 20px; /* 圓角 20px */
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            width: 90%;
+            box-sizing: border-box;
+        }
+
+        .example-sentence {
+            width: 100%;
+            border-top: 1px dashed #cbd5e1; /* 灰色細虛線 */
+            padding-top: 1.5rem;
+            font-size: 1.25rem;
+            color: var(--secondary-text);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🧠 互動單字記憶卡 (U13)</h1>
+    
+    <div class="grid-container" id="card-container">
+        <!-- 卡片將由 JavaScript 動態生成 -->
+    </div>
+
+    <script>
+        const wordData = [
+            { en: "ability", ph: "[ə`bɪlətɪ]", pos: "n.", cn: "能力", strategy: "諧音 (鴨比勒踢)", mnemonic: "這隻鴨子比賽時勒緊大腿用力一踢，展現出驚人的足球能力！", ex: "She has the ability to speak three languages.", grid: 1, pos_idx: 0 },
+            { en: "award", ph: "[ə`wɔrd]", pos: "n.", cn: "獎賞，獎品", strategy: "諧音 (鵝王得)", mnemonic: "企鵝王子得到了金牌，這是國王給他的獎品。", ex: "The actor won an award for his great performance.", grid: 1, pos_idx: 1 },
+            { en: "balloon", ph: "[bə`lun]", pos: "n.", cn: "氣球", strategy: "圖像 (直接圖像)", mnemonic: "大大的氣球飄在空中，下面綁著一隻胖胖的八龍。", ex: "The little girl is holding a red balloon.", grid: 1, pos_idx: 2 },
+            { en: "choose", ph: "[tʃuz]", pos: "v.", cn: "選擇，挑選", strategy: "諧音 (去汁)", mnemonic: "牛排要去汁還是留汁？請做好你的選擇。", ex: "You can choose any book you like on the shelf.", grid: 1, pos_idx: 3 },
+            { en: "classical", ph: "[`klæsɪkL]", pos: "adj.", cn: "古典的", strategy: "諧音 (可拉思考)", mnemonic: "可以一邊拉小提琴一邊思考的音樂，就是古典的音樂。", ex: "My grandfather loves listening to classical music.", grid: 1, pos_idx: 4 },
+            { en: "clerk", ph: "[kl3k]", pos: "n.", cn: "售貨員，店員", strategy: "諧音 (可樂客)", mnemonic: "這位店員非常貼心，總是遞上可樂給每一位客人。", ex: "The clerk at the store was very helpful.", grid: 1, pos_idx: 5 },
+            { en: "concert", ph: "[`ɑns2t]", pos: "n.", cn: "音樂會", strategy: "諧音 (看蛇踢)", mnemonic: "大家買票進來看音樂會，竟然是在看蛇踢踏舞！", ex: "We bought tickets for the rock concert this weekend.", grid: 1, pos_idx: 6 },
+            { en: "divide", ph: "[dɪ`vaId]", pos: "v.", cn: "把……分成", strategy: "諧音 (台語：豬肉大塊)", mnemonic: "拜拜的豬肉大塊吃不完，媽媽拿菜刀把它分成好幾包放冰箱！", ex: "Please divide the cake into four equal pieces.", grid: 1, pos_idx: 7 },
+            { en: "earthquake", ph: "[`3θ&kwek]", pos: "n.", cn: "地震", strategy: "字根 (earth 地球 + quake 搖晃)", mnemonic: "earth（地球）突然劇烈 quake（搖晃），就是發生了地震！", ex: "The strong earthquake shook the whole building.", grid: 1, pos_idx: 8 },
+            { en: "enter", ph: "[`Ent2]", pos: "v.", cn: "進來，進去", strategy: "諧音 (按它)", mnemonic: "想要進去神祕的密室，就要按它（Enter鍵）。", ex: "You need a key card to enter the office.", grid: 1, pos_idx: 9 },
+            { en: "exam", ph: "[ɪɡ`zæm]", pos: "n.", cn: "考試，測驗", strategy: "諧音 (一個尖)", mnemonic: "考試時如果寫錯答案，椅子上就會突然冒出一個尖刺扎你屁股！", ex: "I need to study hard to pass the final exam.", grid: 1, pos_idx: 10 },
+            { en: "fashion", ph: "[`fæʃ1n]", pos: "n.", cn: "流行，時尚", strategy: "諧音 (花神)", mnemonic: "花神穿著最新設計的衣服，引領今年的時尚流行。", ex: "She always follows the latest fashion trends.", grid: 1, pos_idx: 11 },
+            { en: "heaven", ph: "[`hEv1n]", pos: "n.", cn: "天堂", strategy: "諧音 (黑輪)", mnemonic: "這個天堂太棒了，到處都有免費的黑輪可以吃到飽。", ex: "The beautiful island felt like a paradise in heaven.", grid: 1, pos_idx: 12 },
+            { en: "lift", ph: "[lɪft]", pos: "v.", cn: "舉起", strategy: "諧音 (國語：禮服特)", mnemonic: "新娘穿著這件新穎的禮服，特別重的裙擺居然要用吊車才能舉起來！", ex: "The box is too heavy for me to lift.", grid: 1, pos_idx: 13 },
+            { en: "list", ph: "[lɪst]", pos: "n.", cn: "清單，名單", strategy: "諧音 (歷史)", mnemonic: "老師列出了一張長長的歷史考題清單。", ex: "I made a list of things to buy at the supermarket.", grid: 1, pos_idx: 14 },
+            { en: "memory", ph: "[`mɛmərɪ]", pos: "n.", cn: "記憶力，回憶", strategy: "諧音 (國語：美夢裡)", mnemonic: "少女每天都在美夢裡尋找童年最美好的那段回憶與記憶力。", ex: "The old photos brought back many sweet memories.", grid: 2, pos_idx: 0 },
+            { en: "photo", ph: "[foto]", pos: "n.", cn: "照片", strategy: "諧音 (國語：佛偷)", mnemonic: "驚天大案！大佛竟然伸手偷走了一張神祕的照片！", ex: "I took a beautiful photo of the sunset.", grid: 2, pos_idx: 1 },
+            { en: "program", ph: "[`proɡræm]", pos: "n.", cn: "計畫，節目", strategy: "諧音 (國語：鋪路哥哥)", mnemonic: "鋪路哥哥正在為了電視台的新節目，規劃一整套完美的施工計畫！", ex: "My favorite television program starts at eight o'clock.", grid: 2, pos_idx: 2 },
+            { en: "progress", ph: "[prə`ɡrɛs]", pos: "n./v.", cn: "進步，進展", strategy: "諧音 (台語：鋪路雞)", mnemonic: "這隻鋪路雞每天努力向前鋪路，讓工程有了巨大的進步與進展！", ex: "She is making great progress in her English studies.", grid: 2, pos_idx: 3 },
+            { en: "quarrel", ph: "[`kwɔrəl]", pos: "v./n.", cn: "爭吵，吵架", strategy: "諧音 (國語：塊肉)", mnemonic: "兩隻狗狗為了搶一塊肉，在大街上憤怒地爭吵了起來！", ex: "The two brothers often quarrel about toys.", grid: 2, pos_idx: 4 },
+            { en: "range", ph: "[rendʒ]", pos: "n.", cn: "範圍", strategy: "諧音 (國語：人質)", mnemonic: "警方在現場拉起封鎖線，這是歹徒與人質絕對不能跨越的限制範圍！", ex: "The store sells a wide range of shoes.", grid: 2, pos_idx: 5 },
+            { en: "station", ph: "[`steʃən]", pos: "n.", cn: "車站", strategy: "諧音 (國語：師墊身)", mnemonic: "厲害的武術大師竟然用氣功墊高身體，懸浮在火車站的屋頂上！", ex: "I will meet you at the train station.", grid: 2, pos_idx: 6 },
+            { en: "location", ph: "[lo`keʃən]", pos: "n.", cn: "地點，位置", strategy: "諧音 (國語：老開+遜)", mnemonic: "爸爸老開車迷路真的太遜了！在大馬路上轉來轉去，就是找不到正確的地點與位置！", ex: "The GPS helps us find the exact location of the restaurant.", grid: 2, pos_idx: 7 },
+            { en: "classical", ph: "[`klæsɪkL]", pos: "adj.", cn: "古典的", strategy: "諧音 (國語：可拉思考)", mnemonic: "可以一邊拉小提琴一邊思考的音樂，就是古典的音樂。", ex: "She enjoys listening to classical music while studying.", grid: 2, pos_idx: 8 },
+            { en: "fashion", ph: "[`fæʃ1n]", pos: "n.", cn: "流行，時尚", strategy: "諧音 (國語：花神)", mnemonic: "花神穿著最新設計的衣服，引領今年的時尚流行。", ex: "High heels are always in fashion.", grid: 2, pos_idx: 9 }
+        ];
+
+        // 圖片 URL 
+        const bgImgG1 = "https://raw.githubusercontent.com/terenceylhc/cev/main/u13g1.jpg";
+        const bgImgG2 = "https://raw.githubusercontent.com/terenceylhc/cev/main/u13g2.jpg";
+
+
+        const container = document.getElementById('card-container');
+
+        // 生成卡片 HTML
+        wordData.forEach((word) => {
+            const bgImage = word.grid === 1 ? bgImgG1 : bgImgG2;
+            const gridClass = `g${word.grid}-${word.pos_idx}`;
+
+            const cardHTML = `
+                <div class="flashcard" onclick="flipCard(this, '${word.en}')">
+                    <div class="flashcard-inner">
+                        
+                        <!-- 正面 -->
+                        <div class="flashcard-front">
+                            <div class="image-container">
+                                <div class="sprite-img ${gridClass}" style="background-image: url('${bgImage}')"></div>
+                            </div>
+                            <div class="front-content">
+                                <div class="front-word">${word.en}</div>
+                                <div class="front-phonetic">
+                                    ${word.ph}
+                                    <button class="play-btn" onclick="event.stopPropagation(); speak('${word.en}')">🔊</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 反面 -->
+                        <div class="flashcard-back">
+                            <div class="back-word">${word.en}</div>
+                            <div class="back-translation">
+                                <span class="pos-tag">${word.pos}</span>
+                                <span class="cn-meaning">${word.cn}</span>
+                            </div>
+                            <div class="strategy-hint">💡 策略：${word.strategy}</div>
+                            <div class="mnemonic-box">${word.mnemonic}</div>
+                            <div class="example-sentence">${word.ex}</div>
+                        </div>
+
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', cardHTML);
+        });
+
+        // 翻牌與自動朗讀邏輯
+        function flipCard(cardElement, wordToSpeak) {
+            cardElement.classList.toggle('flipped');
+            
+            // 翻到背面時自動發音 (只在翻開時發音)
+            if(cardElement.classList.contains('flipped')) {
+                speak(wordToSpeak);
+            }
+        }
+
+        // Web Speech API 發音功能
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US'; // 設定為美式英文
+                utterance.rate = 0.9;     // 稍微放慢速度，適合學習
+                window.speechSynthesis.speak(utterance);
+            } else {
+                console.log("您的瀏覽器不支援語音合成功能。");
+            }
+        }
+    </script>
+</body>
+</html>
